@@ -106,9 +106,9 @@ contract PumpCore with Deployable,Ownable{
              let realNeedTonAmount = needTonAmount * 1000 / (1000 - self.pumpInfo.protocolFeePercentage);
              refundTonAmount  = tonAmount - realNeedTonAmount;
              tonAmount = realNeedTonAmount;
+             buyFee = tonAmount * self.pumpInfo.protocolFeePercentage / 1000;
         }
 
-        buyFee = tonAmount * self.pumpInfo.protocolFeePercentage / 1000;
         tonAmount -= buyFee;
         let tokenAmount: Int = self.getAmountOut(tonAmount, tokenInfo.reserveT, tokenInfo.reserveA);
 
@@ -120,7 +120,7 @@ contract PumpCore with Deployable,Ownable{
         }
 
         // Adjust token amount if necessary
-        tokenAmount = self.adjustSoldTokenAmount(tokenInfo, tokenAmount);
+        // tokenAmount = self.adjustSoldTokenAmount(tokenInfo, tokenAmount);
 
          // Update token info
         tokenInfo.balanceA -= tokenAmount;
@@ -161,12 +161,12 @@ contract PumpCore with Deployable,Ownable{
 
 
     // Adjust sold token amount if necessary
-    fun adjustSoldTokenAmount(tokenInfo: TokenInfo, tokenAmount: Int): Int {
-        if ((tokenInfo.soldTokenAmount + tokenAmount) > (self.pumpInfo.commonTokenTotalSupply * self.pumpInfo.availableTokenPercentage / 100)) {
-            tokenAmount = self.pumpInfo.commonTokenTotalSupply * self.pumpInfo.availableTokenPercentage / 100 - tokenInfo.soldTokenAmount;
-        }
-        return tokenAmount;
-    }
+    // fun adjustSoldTokenAmount(tokenInfo: TokenInfo, tokenAmount: Int): Int {
+    //     if ((tokenInfo.soldTokenAmount + tokenAmount) > (self.pumpInfo.commonTokenTotalSupply * self.pumpInfo.availableTokenPercentage / 100)) {
+    //         tokenAmount = self.pumpInfo.commonTokenTotalSupply * self.pumpInfo.availableTokenPercentage / 100 - tokenInfo.soldTokenAmount;
+    //     }
+    //     return tokenAmount;
+    // }
 
     // Finalize funding
     fun finalizeFunding(tokenInfo: TokenInfo,sender: Address) {
@@ -394,6 +394,7 @@ contract PumpCore with Deployable,Ownable{
         let wJetton = tokenExistMap!!;
         // let jettonWalletAddress: Address = ctx.sender;
         let tokenInfoNull: TokenInfo? = self.tokenInfoMap.get(wJetton);
+        nativeThrowUnless(INVALID_WTOKEN, tokenInfoNull != null);
 
         // Handle fund success but dex not created
         if (tokenInfoNull!!.fundSuccess && !tokenInfoNull!!.dexCreate) {
@@ -680,6 +681,10 @@ contract PumpCore with Deployable,Ownable{
     // change pump info param
     receive(msg: ChangePumpInfo) {
         self.requireOwner();
+        nativeThrowUnless(INVALID_INPUT_PARAMS,msg.protocolFeePercentage > 0);
+        nativeThrowUnless(INVALID_INPUT_PARAMS,msg.protocolFeePercentage < 1000);
+        nativeThrowUnless(INVALID_INPUT_PARAMS,msg.availableTokenPercentage > 0);
+        nativeThrowUnless(INVALID_INPUT_PARAMS,msg.availableTokenPercentage < 100);
 
         let p: Int =  ton("1");
         let A: Int = msg.commonTokenTotalSupply * msg.availableTokenPercentage / 100;
