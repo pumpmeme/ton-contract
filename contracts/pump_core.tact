@@ -493,7 +493,18 @@ contract PumpCore with Deployable,Ownable{
         let buyAmount = msg.buyAmount;
         nativeThrowUnless(EXCEED_BUY_AMOUNT, buyAmount <= self.pumpInfo.initTonAmountLimit);
 
+        // Deploy tokens
+        let tokenInit: StateInit = self.deployToken(msg.wrapContent);
+        let tokenInit2: StateInit = self.deployToken(msg.content);
+        let wrapTokenAddress: Address = contractAddress(tokenInit);
+        let tokenInfoNull: TokenInfo? = self.tokenInfoMap.get(wrapTokenAddress);
+        nativeThrowUnless(CREATE_TOKEN_EXIST, tokenInfoNull == null);
+        let tokenAddress: Address = contractAddress(tokenInit2);
+
+        // Check signature
         let data = beginCell()
+            .storeAddress(tokenAddress)
+            .storeAddress(wrapTokenAddress)
             .storeAddress(msg.tonVaultAddress)
             .storeAddress(msg.tokenVaultAddress)
             .storeUint(msg.tokenHash,256)
@@ -502,14 +513,6 @@ contract PumpCore with Deployable,Ownable{
         let hash: Int = data.hash();
         let signCheck: Bool = checkSignature(hash, msg.signature, self.pumpInfo.signPublicKey);
         nativeThrowUnless(SIGN_FAILED, signCheck);
-
-        // Deploy tokens
-        let tokenInit: StateInit = self.deployToken(msg.wrapContent);
-        let tokenInit2: StateInit = self.deployToken(msg.content);
-        let wrapTokenAddress: Address = contractAddress(tokenInit);
-        let tokenInfoNull: TokenInfo? = self.tokenInfoMap.get(wrapTokenAddress);
-        nativeThrowUnless(CREATE_TOKEN_EXIST, tokenInfoNull == null);
-        let tokenAddress: Address = contractAddress(tokenInit2);
 
         // TODO check vault address is right
         let tokenInfo: TokenInfo = self.createTokenInfo(tokenAddress, wrapTokenAddress, ctx.sender, buyAmount,msg.tonVaultAddress,msg.tokenVaultAddress,msg.tokenHash);
@@ -783,8 +786,10 @@ contract PumpCore with Deployable,Ownable{
         return self.pumpInfo;
     }
 
-    get fun checkLaunchTokenSignature(tonVaultAddress: Address,tokenVaultAddress: Address,tokenHash: Int,signature: Slice): Bool {
+    get fun checkLaunchTokenSignature(tokenAddress: Address,wrapTokenAddress: Address,tonVaultAddress: Address,tokenVaultAddress: Address,tokenHash: Int,signature: Slice): Bool {
          let data = beginCell()
+            .storeAddress(tokenAddress)
+            .storeAddress(wrapTokenAddress)
             .storeAddress(tonVaultAddress)
             .storeAddress(tokenVaultAddress)
             .storeUint(tokenHash,256)
