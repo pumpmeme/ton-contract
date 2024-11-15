@@ -502,13 +502,16 @@ contract PumpCore with Deployable,Ownable{
         let tokenAddress: Address = contractAddress(tokenInit2);
 
         // Check signature
-        let data = beginCell()
+        let refData = beginCell()
             .storeAddress(tokenAddress)
             .storeAddress(wrapTokenAddress)
+            .endCell();
+
+        let data = beginCell()
+            .storeRef(refData)
             .storeAddress(msg.tonVaultAddress)
             .storeAddress(msg.tokenVaultAddress)
             .storeUint(msg.tokenHash,256)
-            // .storeRef(msg.content)
             .endCell();
         let hash: Int = data.hash();
         let signCheck: Bool = checkSignature(hash, msg.signature, self.pumpInfo.signPublicKey);
@@ -787,13 +790,16 @@ contract PumpCore with Deployable,Ownable{
     }
 
     get fun checkLaunchTokenSignature(tokenAddress: Address,wrapTokenAddress: Address,tonVaultAddress: Address,tokenVaultAddress: Address,tokenHash: Int,signature: Slice): Bool {
-         let data = beginCell()
+        let refData = beginCell()
             .storeAddress(tokenAddress)
             .storeAddress(wrapTokenAddress)
+            .endCell();
+
+        let data = beginCell()
+            .storeRef(refData)
             .storeAddress(tonVaultAddress)
             .storeAddress(tokenVaultAddress)
             .storeUint(tokenHash,256)
-            // .storeRef(content)
             .endCell();
         let hash: Int = data.hash();
         return checkSignature(hash, signature, self.pumpInfo.signPublicKey);
